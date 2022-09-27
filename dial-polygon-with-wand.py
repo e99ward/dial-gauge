@@ -5,10 +5,10 @@ from math import degrees, radians, sin, cos, tan, sqrt, atan
 from SegTR import Rotate, ParallelMove
 
 #-----------------------------------#
-r = 2 # radius of gauge ball
+r = 1 # radius of gauge ball
 T1 = 0.01 # tolerance for adjust
 T2 = 0.01 # tolerance for acceptance
-delta_x, delta_y = [0.5, 0.5] # displacement
+delta_x, delta_y = [1.5, 0.5] # displacement
 angle = 10 # rotation
 #-----------------------------------#
 
@@ -28,6 +28,7 @@ trace_x = []
 trace_y = []
 gauge_x = []
 gauge_y = []
+travel = [0.0]
 distance = []
 
 def get_segment(idx):
@@ -173,10 +174,130 @@ def judgment_of_touch_with_neighbor(pt_in, theta, index):
     pt_out = [pt_x, pt_y]
     return pt_out, ifcusp
 
+def judgment_of_touch_x_original(pt_c, theta, index):
+    pt_1, pt_2 = get_segment(index)
+    dist = get_distance(pt_c)
+    pt_h = get_foot_position(pt_c)
+    ifcusp = 0
+    while(True):
+        if (dist > r-T2 and dist < r+T2):
+            angle = get_foot_position_angle(pt_c)
+            if angle > angles[index+1]:
+                pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_2, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+            elif angle < angles[index]:
+                pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_1, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+            break
+        elif (dist < r):
+            # -45 < angle < +45
+            pt_c[0] += T1
+            pt_c[1] += T1*tan(radians(theta))          
+            dist = get_distance(pt_c)
+            angle = get_foot_position_angle(pt_c)
+            if angle > angles[index+1]:
+                pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_2, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+            elif angle < angles[index]:
+                pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_1, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+        else:
+            pt_c[0] -= T1
+            pt_c[1] -= T1*tan(radians(theta))
+            dist = get_distance(pt_c)
+            angle = get_foot_position_angle(pt_c)
+            if angle > angles[index+1]:
+                pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_2, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+            elif angle < angles[index]:
+                pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_1, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+    if ifcusp == 0:
+        pt_h = get_foot_position(pt_c)
+    return pt_c, pt_h
+
+def judgment_of_touch_x_neighbor(pt_c, theta, index):
+    pt_1, pt_2 = get_segment(index)
+    dist = get_distance(pt_c)
+    pt_h = get_foot_position(pt_c)
+    ifcusp = 0
+    while(True):
+        if (dist > r-T2 and dist < r+T2):
+            angle = get_foot_position_angle(pt_c)
+            angle = assert_angle_at_x_region(theta, angle)
+            if angle > angles[index+1]:
+                pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
+                if ifcusp != 0:
+                    pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
+                    break
+                break
+            elif angle < angles[index]:
+                pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
+                if ifcusp != 0:
+                    pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
+                    break
+                break
+            break
+        elif (dist < r):
+            # 0-45 < angle < 0+45
+            pt_c[0] += T1
+            pt_c[1] += T1*tan(radians(theta))          
+            dist = get_distance(pt_c)
+            angle = get_foot_position_angle(pt_c)
+            angle = assert_angle_at_x_region(theta, angle)
+            if angle > angles[index+1]:
+                pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
+                if ifcusp != 0:
+                    pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
+                    break
+                break
+            elif angle < angles[index]:
+                pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+        else:
+            pt_c[0] -= T1
+            pt_c[1] -= T1*tan(radians(theta))
+            dist = get_distance(pt_c)
+            angle = get_foot_position_angle(pt_c)
+            angle = assert_angle_at_x_region(theta, angle)
+            if angle > angles[index+1]:
+                pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
+                if ifcusp != 0:
+                    pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
+                    break
+                break
+            elif angle < angles[index]:
+                pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                pt_h = get_foot_position(pt_c)
+                ifcusp += 1
+                break
+    if ifcusp == 0:
+        pt_h = get_foot_position(pt_c)
+    return pt_c, pt_h
+
 def judgment_of_touch_x(pt, theta, index):
     pt_1, pt_2 = get_segment(index)
     pt_c = [pt[0], pt[1]]
     dist = get_distance(pt_c)
+    pt_h = get_foot_position(pt_c)
     ifcusp = False
     while(True):
         # 0-45 < angle < 0+45
@@ -190,11 +311,13 @@ def judgment_of_touch_x(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         elif (dist > r+T2):
             pt_c[0] -= T1
@@ -206,11 +329,13 @@ def judgment_of_touch_x(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         else: # if (dist > r-T2 and dist < r+T2):
             angle = get_foot_position_angle(pt_c)
@@ -219,19 +344,30 @@ def judgment_of_touch_x(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
+                # pt_c = adjust_gauge_to_cusp_x(pt_c, pt_2, theta)
+                # pt_h = get_foot_position(pt_c)
+                # ifcusp = True
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
+                # pt_c = adjust_gauge_to_cusp_x(pt_c, pt_1, theta)
+                # pt_h = get_foot_position(pt_c)
+                # ifcusp = True
             break
-    return pt_c
+    if ifcusp == False:
+        pt_h = get_foot_position(pt_c)
+    return pt_c, pt_h
 
 def judgment_of_touch_y(pt, theta, index):
     pt_1, pt_2 = get_segment(index)
     pt_c = [pt[0], pt[1]]
     dist = get_distance(pt_c)
+    pt_h = get_foot_position(pt_c)
     ifcusp = False
     while(True):
         # 90-45 < angle < 90+45
@@ -244,11 +380,13 @@ def judgment_of_touch_y(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         elif (dist > r+T2):
             pt_c[0] -= T1*tan(radians(90-theta))
@@ -259,11 +397,13 @@ def judgment_of_touch_y(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         else: # (dist > r-T2 and dist < r+T2):
             angle = get_foot_position_angle(pt_c)
@@ -271,19 +411,30 @@ def judgment_of_touch_y(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
+                # pt_c = adjust_gauge_to_cusp_y(pt_c, pt_2, theta)
+                # pt_h = get_foot_position(pt_c)
+                # ifcusp = True
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
+                # pt_c = adjust_gauge_to_cusp_y(pt_c, pt_1, theta)
+                # pt_h = get_foot_position(pt_c)
+                # ifcusp = True
             break
-    return pt_c
+    if ifcusp == False:
+        pt_h = get_foot_position(pt_c)
+    return pt_c, pt_h
 
 def judgment_of_touch_x_neg(pt, theta, index):
     pt_1, pt_2 = get_segment(index)
     pt_c = [pt[0], pt[1]]
     dist = get_distance(pt_c)
+    pt_h = get_foot_position(pt_c)
     ifcusp = True
     while(True):
         # 180-45 < angle < 180+45
@@ -296,11 +447,13 @@ def judgment_of_touch_x_neg(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         elif (dist > r+T2):
             pt_c[0] += T1
@@ -311,11 +464,13 @@ def judgment_of_touch_x_neg(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         else: # if (dist > r-T2 and dist < r+T2):
             angle = get_foot_position_angle(pt_c)
@@ -323,19 +478,24 @@ def judgment_of_touch_x_neg(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_x_neg(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             break
-    return pt_c
+    if ifcusp == False:
+        pt_h = get_foot_position(pt_c)
+    return pt_c, pt_h
 
 def judgment_of_touch_y_neg(pt, theta, index):
     pt_1, pt_2 = get_segment(index)
     pt_c = [pt[0], pt[1]]
     dist = get_distance(pt_c)
+    pt_h = get_foot_position(pt_c)
     ifcusp = 0
     while(True):
         # 270-45 < angle < 270+45
@@ -348,11 +508,13 @@ def judgment_of_touch_y_neg(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y_neg(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y_neg(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         elif (dist > r+T2):
             pt_c[0] += T1*tan(radians(90-theta))
@@ -363,11 +525,13 @@ def judgment_of_touch_y_neg(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y_neg(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y_neg(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
         else: # if (dist > r-T2 and dist < r+T2):
             angle = get_foot_position_angle(pt_c)
@@ -375,14 +539,18 @@ def judgment_of_touch_y_neg(pt, theta, index):
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index+1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y_neg(pt_c, pt_2, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             elif angle < angles[index]:
                 pt_c, ifcusp = judgment_of_touch_with_neighbor(pt_c, theta, index-1)
                 if ifcusp == True:
                     pt_c = adjust_gauge_to_cusp_y_neg(pt_c, pt_1, theta)
+                    pt_h = get_foot_position(pt_c)
                 break
             break
-    return pt_c
+    if ifcusp == False:
+        pt_h = get_foot_position(pt_c)
+    return pt_c, pt_h
 
 def adjust_gauge_to_cusp_x(pt_in, pt_s, theta):
     pt_c = [pt_in[0], pt_in[1]]
@@ -448,11 +616,15 @@ def adjust_gauge_to_cusp_y_neg(pt_in, pt_s, theta):
             dist = get_distance_btw_points(pt_c, pt_s)
     return pt_c
 
-def build_up_data(pt_c):
+def build_up_data(pt_c, pt_h):
     global trace_x
     trace_x.append(pt_c[0])
     global trace_y
     trace_y.append(pt_c[1])
+    global gauge_x
+    gauge_x.append(pt_h[0])
+    global gauge_y
+    gauge_y.append(pt_h[1])
 
 def do_region_positive_x(index): # 1x (0-45) = 4x (315-360)
     pt_1, pt_2 = get_segment(index)
@@ -460,8 +632,8 @@ def do_region_positive_x(index): # 1x (0-45) = 4x (315-360)
     pt_c = [pt_1[0], pt_1[1]]
     for theta in range(angles[index], angles[index+1]):
         pt_c[1] = pt_c[0] * tan(radians(theta))
-        pt_c = judgment_of_touch_x(pt_c, theta, index)
-        build_up_data(pt_c)
+        pt_c, pt_h = judgment_of_touch_x(pt_c, theta, index)
+        build_up_data(pt_c, pt_h)
 
 def do_region_positive_y(index): # 1y (45-90) = 2y (90-135)
     pt_1, pt_2 = get_segment(index)
@@ -469,8 +641,8 @@ def do_region_positive_y(index): # 1y (45-90) = 2y (90-135)
     pt_c = [pt_1[0], pt_1[1]]
     for theta in range(angles[index], angles[index+1]):
         pt_c[0] = pt_c[1] * tan(radians(90-theta))
-        pt_c = judgment_of_touch_y(pt_c, theta, index)
-        build_up_data(pt_c)
+        pt_c, pt_h = judgment_of_touch_y(pt_c, theta, index)
+        build_up_data(pt_c, pt_h)
 
 def do_region_negative_x(index): # 2x (135-180) = 3x (180-225)
     pt_1, pt_2 = get_segment(index)
@@ -478,8 +650,8 @@ def do_region_negative_x(index): # 2x (135-180) = 3x (180-225)
     pt_c = [pt_1[0], pt_1[1]]
     for theta in range(angles[index], angles[index+1]):
         pt_c[1] = pt_c[0] * tan(radians(theta))
-        pt_c = judgment_of_touch_x_neg(pt_c, theta, index)
-        build_up_data(pt_c)
+        pt_c, pt_h = judgment_of_touch_x_neg(pt_c, theta, index)
+        build_up_data(pt_c, pt_h)
 
 def do_region_negative_y(index): # 3y (225-270) = 4y (270-315)
     pt_1, pt_2 = get_segment(index)
@@ -487,8 +659,8 @@ def do_region_negative_y(index): # 3y (225-270) = 4y (270-315)
     pt_c = [pt_1[0], pt_1[1]]
     for theta in range(angles[index], angles[index+1]):
         pt_c[0] = pt_c[1] * tan(radians(90-theta))
-        pt_c = judgment_of_touch_y_neg(pt_c, theta, index)
-        build_up_data(pt_c)
+        pt_c, pt_h = judgment_of_touch_y_neg(pt_c, theta, index)
+        build_up_data(pt_c, pt_h)
 
 # set the angles for the segments
 for item in segments:
@@ -512,6 +684,12 @@ for idx, angle in enumerate(angles[:-1]):
 
 # print(len(gauge_x))
 # print(len(trace_x))
+
+integral = 0.0
+for i in range(len(gauge_x)-1):
+    increment = get_distance_btw_points([gauge_x[i], gauge_y[i]], [gauge_x[i+1], gauge_y[i+1]])
+    integral += increment
+    travel.append(integral)
 
 for i in range(len(trace_x)-1):
     dist = get_distance_btw_points([trace_x[i], trace_y[i]], [0, 0])
@@ -541,6 +719,7 @@ ax2.grid()
 
 trace, = ax1.plot([], [], 'b-')
 circle, = ax1.plot([], [], 'g-', linewidth=1)
+wand, = ax1.plot([], [], '.y-', linewidth=1)
 punct, = ax1.plot([], [], '.k-', linewidth=1)
 probe, = ax2.plot([], [], 'r-')
 
@@ -554,12 +733,16 @@ ax1.add_artist(line_org2)
 def animate(i):
     x = trace_x[i]
     y = trace_y[i]
+    phi = degrees(travel[i] / r)
+    x2 = x - r * cos(radians(phi))
+    y2 = y - r * sin(radians(phi))
     cx, cy = circle_drawing(x, y, r)
     circle.set_data(cx, cy)
-    trace.set_data((trace_x[:i], trace_y[:i]))
+    wand.set_data((x, x2), (y, y2))
     punct.set_data((delta_x, delta_y))
+    trace.set_data((trace_x[:i], trace_y[:i]))
     probe.set_data((np.arange(i), distance[:i]))
-    return circle, trace, punct, probe,
+    return circle, trace, wand, punct, probe,
 
 def circle_drawing(c_x, c_y, radius):
     theta = np.linspace(0, 2*np.pi, 100)

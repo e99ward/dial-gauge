@@ -8,7 +8,7 @@ from SegTR import Rotate, ParallelMove
 r = 2 # radius of gauge ball
 T1 = 0.01 # tolerance for adjust
 T2 = 0.01 # tolerance for acceptance
-delta_x, delta_y = [0.5, 0.5] # displacement
+delta_x, delta_y = [1.1, 0.5] # displacement
 angle = 10 # rotation
 #-----------------------------------#
 
@@ -501,11 +501,11 @@ print(angles)
 
 # classify the regions
 for idx, angle in enumerate(angles[:-1]):
-    if angle >= 45 and angle < 135:
+    if 45 <= angle < 135: # if angle >= 45 and angle < 135:
         do_region_positive_y(idx)
-    elif angle >= 135 and angle < 225:
+    elif 135 <= angle < 225:
         do_region_negative_x(idx)
-    elif angle >= 225 and angle < 315:
+    elif 225 <= angle < 315: 
         do_region_negative_y(idx)
     else:
         do_region_positive_x(idx)

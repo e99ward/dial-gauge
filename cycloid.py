@@ -17,8 +17,8 @@ for s in np.linspace(0, 4*np.pi, instep):
     x_points.append(x)
     y_points.append(y)
 
-raza = plt.Line2D((0, 0), (0, 0), linewidth=1, color="y")
-circleR = plt.Circle((0, 0), R, color='g', fill=False)
+raza = plt.Line2D((0, 0), (0, 0), linewidth=1, color="k")
+circleR = plt.Circle((0, 0), R, color='r', fill=False)
 punct = plt.Circle((0, 0), float(float(R)/10), color="b")
 fig, ax = plt.subplots()
 ax.set_aspect('equal')
